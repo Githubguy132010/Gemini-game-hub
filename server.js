@@ -1,51 +1,51 @@
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const express = require('express');
-const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+const express = require("express");
+const cors = require("cors");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 const port = 3000;
-const GAMES_FILE = path.join(__dirname, 'games.json');
+const GAMES_FILE = path.join(__dirname, "games.json");
 
 app.use(cors());
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Initialize the Google Generative AI client
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 function extractCleanCode(gameCode) {
-    let cleanCode;
-    const codeBlockMatch = gameCode.match(/```html([\s\S]*)```/);
-    if (codeBlockMatch && codeBlockMatch[1]) {
-        cleanCode = codeBlockMatch[1].trim();
+  let cleanCode;
+  const codeBlockMatch = gameCode.match(/```html([\s\S]*)```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    cleanCode = codeBlockMatch[1].trim();
+  } else {
+    const htmlMatch = gameCode.match(/<!DOCTYPE html>[\s\S]*<\/html>/);
+    if (htmlMatch && htmlMatch[0]) {
+      cleanCode = htmlMatch[0];
     } else {
-        const htmlMatch = gameCode.match(/<!DOCTYPE html>[\s\S]*<\/html>/);
-        if (htmlMatch && htmlMatch[0]) {
-            cleanCode = htmlMatch[0];
-        } else {
-            cleanCode = gameCode;
-        }
+      cleanCode = gameCode;
     }
-    return cleanCode;
+  }
+  return cleanCode;
 }
 
-app.post('/generate', async (req, res) => {
+app.post("/generate", async (req, res) => {
   try {
     const { prompt } = req.body;
 
     if (!prompt) {
-      return res.status(400).send({ error: 'Prompt is required' });
+      return res.status(400).send({ error: "Prompt is required" });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // A specific prompt to guide the AI to create a complete, runnable game
     const fullPrompt = `
@@ -60,159 +60,163 @@ app.post('/generate', async (req, res) => {
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     const gameCode = response.candidates[0].content.parts[0].text;
-    
+
     const cleanCode = extractCleanCode(gameCode);
 
     if (!cleanCode) {
-        // If after all checks, cleanCode is empty, something went wrong.
-        return res.status(500).send({ error: 'Failed to extract valid game code from AI response.' });
+      // If after all checks, cleanCode is empty, something went wrong.
+      return res
+        .status(500)
+        .send({ error: "Failed to extract valid game code from AI response." });
     }
 
     res.send({ code: cleanCode });
   } catch (error) {
     console.error(error);
-    console.error('Error generating game:', error);
-    res.status(500).send({ error: 'Failed to generate game' });
+    console.error("Error generating game:", error);
+    res.status(500).send({ error: "Failed to generate game" });
   }
 });
 
-app.post('/api/games', (req, res) => {
-    const { name, code } = req.body;
+app.post("/api/games", (req, res) => {
+  const { name, code } = req.body;
 
-    if (!name || !code) {
-        return res.status(400).send({ error: 'Game name and code are required' });
+  if (!name || !code) {
+    return res.status(400).send({ error: "Game name and code are required" });
+  }
+
+  const newGame = {
+    id: Date.now().toString(),
+    name,
+    code,
+  };
+
+  fs.readFile(GAMES_FILE, (err, data) => {
+    let games = [];
+    if (!err) {
+      try {
+        games = JSON.parse(data);
+      } catch (e) {
+        // Ignore parsing errors, start with a fresh array
+      }
     }
 
-    const newGame = {
-        id: Date.now().toString(),
-        name,
-        code,
-    };
+    games.push(newGame);
 
-    fs.readFile(GAMES_FILE, (err, data) => {
-        let games = [];
-        if (!err) {
-            try {
-                games = JSON.parse(data);
-            } catch (e) {
-                // Ignore parsing errors, start with a fresh array
-            }
-        }
-
-        games.push(newGame);
-
-        fs.writeFile(GAMES_FILE, JSON.stringify(games, null, 2), (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send({ error: 'Failed to save game' });
-            }
-            res.status(201).send({ id: newGame.id });
-        });
+    fs.writeFile(GAMES_FILE, JSON.stringify(games, null, 2), (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send({ error: "Failed to save game" });
+      }
+      res.status(201).send({ id: newGame.id });
     });
+  });
 });
 
 // API endpoint to get all games
-app.get('/api/games', (req, res) => {
+app.get("/api/games", (req, res) => {
   fs.readFile(GAMES_FILE, (err, data) => {
     if (err) {
-      if (err.code === 'ENOENT') {
+      if (err.code === "ENOENT") {
         return res.json([]);
       }
       console.error(err);
-      return res.status(500).send({ error: 'Failed to retrieve games' });
+      return res.status(500).send({ error: "Failed to retrieve games" });
     }
     try {
       const games = JSON.parse(data);
       res.json(games);
     } catch (e) {
       console.error(e);
-      res.status(500).send({ error: 'Failed to parse games data' });
+      res.status(500).send({ error: "Failed to parse games data" });
     }
   });
 });
 
 // API endpoint to get a single game by ID
-app.get('/api/games/:id', (req, res) => {
+app.get("/api/games/:id", (req, res) => {
   const gameId = req.params.id;
   fs.readFile(GAMES_FILE, (err, data) => {
     if (err) {
       console.error(err);
-      return res.status(500).send({ error: 'Failed to retrieve games' });
+      return res.status(500).send({ error: "Failed to retrieve games" });
     }
     try {
       const games = JSON.parse(data);
-      const game = games.find(g => g.id === gameId);
+      const game = games.find((g) => g.id === gameId);
       if (game) {
         res.json(game);
       } else {
-        res.status(404).send({ error: 'Game not found' });
+        res.status(404).send({ error: "Game not found" });
       }
     } catch (e) {
       console.error(e);
-      res.status(500).send({ error: 'Failed to parse games data' });
+      res.status(500).send({ error: "Failed to parse games data" });
     }
   });
 });
 
-app.delete('/api/games/:id', (req, res) => {
-    const gameId = req.params.id;
+app.delete("/api/games/:id", (req, res) => {
+  const gameId = req.params.id;
 
-    fs.readFile(GAMES_FILE, (err, data) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send({ error: 'Failed to retrieve games' });
-        }
-
-        let games;
-        try {
-            games = JSON.parse(data);
-        } catch (e) {
-            console.error(e);
-            return res.status(500).send({ error: 'Failed to parse games data' });
-        }
-
-        const gameIndex = games.findIndex(g => g.id === gameId);
-
-        if (gameIndex === -1) {
-            return res.status(404).send({ error: 'Game not found' });
-        }
-
-        games.splice(gameIndex, 1);
-
-        fs.writeFile(GAMES_FILE, JSON.stringify(games, null, 2), (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).send({ error: 'Failed to delete game' });
-            }
-            res.status(200).send({ message: 'Game deleted successfully' });
-        });
-    });
-});
-
-app.post('/api/iterate', async (req, res) => {
-    const { gameId, prompt } = req.body;
-
-    if (!gameId || !prompt) {
-        return res.status(400).json({ error: 'Game ID and prompt are required' });
+  fs.readFile(GAMES_FILE, (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send({ error: "Failed to retrieve games" });
     }
 
-    fs.readFile(GAMES_FILE, async (err, data) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Failed to retrieve game to iterate on' });
-        }
+    let games;
+    try {
+      games = JSON.parse(data);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send({ error: "Failed to parse games data" });
+    }
 
-        try {
-            const games = JSON.parse(data);
-            const game = games.find(g => g.id === gameId);
+    const gameIndex = games.findIndex((g) => g.id === gameId);
 
-            if (!game) {
-                return res.status(404).json({ error: 'Game not found' });
-            }
+    if (gameIndex === -1) {
+      return res.status(404).send({ error: "Game not found" });
+    }
 
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    games.splice(gameIndex, 1);
 
-            const iterationPrompt = `
+    fs.writeFile(GAMES_FILE, JSON.stringify(games, null, 2), (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send({ error: "Failed to delete game" });
+      }
+      res.status(200).send({ message: "Game deleted successfully" });
+    });
+  });
+});
+
+app.post("/api/iterate", async (req, res) => {
+  const { gameId, prompt } = req.body;
+
+  if (!gameId || !prompt) {
+    return res.status(400).json({ error: "Game ID and prompt are required" });
+  }
+
+  fs.readFile(GAMES_FILE, async (err, data) => {
+    if (err) {
+      console.error(err);
+      return res
+        .status(500)
+        .json({ error: "Failed to retrieve game to iterate on" });
+    }
+
+    try {
+      const games = JSON.parse(data);
+      const game = games.find((g) => g.id === gameId);
+
+      if (!game) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+      const iterationPrompt = `
                 You are a game development expert. You will be given the HTML code for an existing game and a user's request for changes.
                 Your task is to modify the game according to the request and provide the complete, updated, single-file HTML code for the new version of the game.
                 Ensure the game remains self-contained with all necessary HTML, CSS, and JavaScript in one file.
@@ -228,23 +232,30 @@ app.post('/api/iterate', async (req, res) => {
                 Return only the complete, updated HTML code for the game.
             `;
 
-            const result = await model.generateContent(iterationPrompt);
-            const response = await result.response;
-            const newGameCode = response.candidates[0].content.parts[0].text;
+      const result = await model.generateContent(iterationPrompt);
+      const response = await result.response;
+      const newGameCode = response.candidates[0].content.parts[0].text;
 
-            const cleanCode = extractCleanCode(newGameCode);
+      const cleanCode = extractCleanCode(newGameCode);
 
-            if (!cleanCode) {
-                return res.status(500).json({ error: 'Failed to extract valid game code from AI response.' });
-            }
+      if (!cleanCode) {
+        return res
+          .status(500)
+          .json({
+            error: "Failed to extract valid game code from AI response.",
+          });
+      }
 
-            res.json({ code: cleanCode });
-
-        } catch (error) {
-            console.error('Error during iteration:', error);
-            res.status(500).json({ error: 'Failed to iterate on the game due to an internal error.' });
-        }
-    });
+      res.json({ code: cleanCode });
+    } catch (error) {
+      console.error("Error during iteration:", error);
+      res
+        .status(500)
+        .json({
+          error: "Failed to iterate on the game due to an internal error.",
+        });
+    }
+  });
 });
 
 app.listen(port, () => {
