@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Game Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Gemini Game Hub</h1>
+
+    <div id="game-request">
+        <h2>Create a New Game</h2>
+        <form id="game-form">
+            <textarea id="game-prompt" rows="5" placeholder="Describe the game you want to create..."></textarea>
+            <button type="submit">Generate Game</button>
+        </form>
+    </div>
+
+    <div id="game-container">
+        <!-- The generated game will be displayed here -->
+    </div>
+    <div id="publish-container" style="display: none;">
+        <h3>Publish Your Game</h3>
+        <form id="publish-form">
+            <input type="text" id="game-name" placeholder="Enter a name for your game" required>
+            <button type="submit">Publish</button>
+        </form>
+    </div>
+
+    <div id="gallery-container">
+        <h2>Published Games</h2>
+        <div id="game-list">
+            <!-- Game list will be rendered here -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
