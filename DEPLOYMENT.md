@@ -17,22 +17,40 @@ To deploy the frontend of the application to Vercel, follow these steps:
     *   Run the command `vercel` to deploy the application.
     *   Follow the prompts to configure the deployment.
 
-## Backend Deployment (Heroku)
+## Backend Deployment (Vercel)
 
-To deploy the backend of the application to Heroku, follow these steps:
+To deploy the backend of the application to Vercel, follow these steps:
 
-1.  **Install Heroku CLI:**
-    *   If you don't have the Heroku CLI installed, follow the instructions [here](https://devcenter.heroku.com/articles/heroku-cli) to install it.
+1.  **Install Vercel CLI:**
+    *   If you don't have the Vercel CLI installed, run the command `npm i -g vercel` to install it.
 
-2.  **Login to Heroku:**
-    *   Open a terminal and run the command `heroku login`.
+2.  **Login to Vercel:**
+    *   Open a terminal and run the command `vercel login`.
 
-3.  **Create a Heroku App:**
+3.  **Configure for Vercel:**
+    *   Create a `vercel.json` file in the `backend` directory with the following content:
+      ```json
+      {
+        "version": 2,
+        "builds": [
+          {
+            "src": "index.js",
+            "use": "@vercel/node"
+          }
+        ],
+        "routes": [
+          {
+            "src": "/(.*)",
+            "dest": "index.js"
+          }
+        ]
+      }
+      ```
+
+4.  **Deploy to Vercel:**
     *   Navigate to the `backend` directory.
-    *   Run the command `heroku create` to create a new Heroku application.
-
-4.  **Push to Heroku:**
-    *   Run the command `git push heroku main` to deploy the application.
+    *   Run the command `vercel` to deploy the application.
+    *   Follow the prompts to configure the deployment.
 
 ## Environment Variables
 
@@ -44,11 +62,10 @@ To configure the environment variables for the frontend, follow these steps:
 2.  Add the following environment variables:
     *   `REACT_APP_API_URL`: The URL of the deployed backend application.
 
-### Backend (Heroku)
+### Backend (Vercel)
 
 To configure the environment variables for the backend, follow these steps:
 
-1.  In the Heroku dashboard, go to **Settings > Config Vars**.
+1.  In the Vercel dashboard, go to **Project Settings > Environment Variables**.
 2.  Add the following environment variables:
     *   `MONGODB_URI`: The connection string for the MongoDB database.
-    *   `PORT`: The port number for the backend application (Heroku sets this automatically).
