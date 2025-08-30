@@ -5,6 +5,10 @@ const publishContainer = document.getElementById('publish-container');
 const publishForm = document.getElementById('publish-form');
 const gameNameInput = document.getElementById('game-name');
 const gameList = document.getElementById('game-list');
+const iterateButton = document.getElementById('iterate-button');
+const iterationContainer = document.getElementById('iteration-container');
+const iterationForm = document.getElementById('iteration-form');
+const iterationPrompt = document.getElementById('iteration-prompt');
 
 let lastGeneratedCode = '';
 
@@ -13,6 +17,7 @@ gameForm.addEventListener('submit', async (event) => {
     const prompt = gamePrompt.value;
     gameContainer.innerHTML = '<p>Generating your game...</p>';
     publishContainer.style.display = 'none'; // Hide publish form on new generation
+    iterationContainer.style.display = 'none';
 
     try {
         const response = await fetch('http://localhost:3000/generate', {
@@ -84,6 +89,53 @@ publishForm.addEventListener('submit', async (event) => {
     }
 });
 
+iterateButton.addEventListener('click', () => {
+    iterationContainer.style.display = 'block';
+});
+
+iterationForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const prompt = iterationPrompt.value;
+    gameContainer.innerHTML = '<p>Iterating on your game...</p>';
+    iterationContainer.style.display = 'none';
+
+    try {
+        const response = await fetch('http://localhost:3000/iterate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: lastGeneratedCode, prompt }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to iterate on game');
+        }
+
+        const data = await response.json();
+        lastGeneratedCode = data.code; // Save the generated code
+
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '500px';
+        iframe.style.border = 'none';
+        
+        gameContainer.innerHTML = '';
+        gameContainer.appendChild(iframe);
+        
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(data.code);
+        iframe.contentWindow.document.close();
+
+        publishContainer.style.display = 'block'; // Show the publish form again
+        iterationForm.reset();
+        
+    } catch (error) {
+        console.error(error);
+        gameContainer.innerHTML = `<p>Error: ${error.message}</p>`;
+    }
+});
+
 async function loadGames() {
     try {
         const response = await fetch('http://localhost:3000/games');
@@ -118,6 +170,7 @@ async function loadGames() {
                 // Also show the publish container in case they want to re-publish
                 lastGeneratedCode = game.code;
                 publishContainer.style.display = 'block';
+                iterationContainer.style.display = 'none';
             });
             gameList.appendChild(gameElement);
         });
