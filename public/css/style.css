@@ -219,3 +219,38 @@ iframe {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
+
+#fullscreen-container {
+    position: relative;
+}
+
+#fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+#fullscreen-container:fullscreen,
+#fullscreen-container:-webkit-full-screen,
+#fullscreen-container:-moz-full-screen,
+#fullscreen-container:-ms-fullscreen {
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
+#fullscreen-container:fullscreen #game-container {
+    transform-origin: top left;
+}
+
+#fullscreen-container:fullscreen #game-display,
+#fullscreen-container:fullscreen iframe {
+    width: 100%;
+    height: 100%;
+}

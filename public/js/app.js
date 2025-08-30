@@ -86,6 +86,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameDisplay) {
         const urlParams = new URLSearchParams(window.location.search);
         const gameId = urlParams.get('id');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const fullscreenContainer = document.getElementById('fullscreen-container');
+
+        if (fullscreenBtn && fullscreenContainer) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (fullscreenContainer.requestFullscreen) {
+                    fullscreenContainer.requestFullscreen();
+                } else if (fullscreenContainer.mozRequestFullScreen) { /* Firefox */
+                    fullscreenContainer.mozRequestFullScreen();
+                } else if (fullscreenContainer.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    fullscreenContainer.webkitRequestFullscreen();
+                } else if (fullscreenContainer.msRequestFullscreen) { /* IE/Edge */
+                    fullscreenContainer.msRequestFullscreen();
+                }
+            });
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                const screenWidth = window.screen.width;
+                const screenHeight = window.screen.height;
+                const gameContainerWidth = gameContainer.clientWidth;
+                const gameContainerHeight = gameContainer.clientHeight;
+
+                const scaleX = screenWidth / gameContainerWidth;
+                const scaleY = screenHeight / gameContainerHeight;
+                const scale = Math.min(scaleX, scaleY);
+
+                gameContainer.style.transform = `scale(${scale})`;
+            } else {
+                gameContainer.style.transform = '';
+            }
+        });
 
         if (gameId) {
             fetch(`/api/games/${gameId}`)
@@ -93,13 +126,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(game => {
                     if (game && game.code) {
                         const htmlStartIndex = game.code.indexOf('<!DOCTYPE html>');
-                        const gameHtml = htmlStartIndex !== -1 ? game.code.substring(htmlStartIndex) : game.code;
+                        let gameHtml = htmlStartIndex !== -1 ? game.code.substring(htmlStartIndex) : game.code;
+
+                        // Inject styles to make the game responsive
+                        const style = `
+                            <style>
+                                html, body {
+                                    margin: 0;
+                                    padding: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    overflow: hidden;
+                                }
+                                canvas {
+                                    display: block;
+                                    width: 100%;
+                                    height: 100%;
+                                }
+                            </style>
+                        `;
+                        gameHtml = style + gameHtml;
                         
                         // Create iframe element dynamically
                         const iframe = document.createElement('iframe');
                         iframe.srcdoc = gameHtml;
                         iframe.width = '100%';
-                        iframe.height = '100vh';
+                        iframe.height = '100%';
                         iframe.frameBorder = '0';
                         
                         // Clear previous content and append the new iframe
