@@ -202,13 +202,6 @@ app.post("/api/iterate", async (req, res) => {
   }
 
   try {
-    const data = await fsp.readFile(GAMES_FILE);
-    const games = JSON.parse(data);
-    const game = games.find((g) => g.id === gameId);
-
-    if (!game) {
-      return res.status(404).json({ error: "Game not found" });
-    }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
@@ -218,12 +211,9 @@ app.post("/api/iterate", async (req, res) => {
                 Ensure the game remains self-contained with all necessary HTML, CSS, and JavaScript in one file.
                 Do not use any external libraries or assets.
 
-                Existing Game Code:
-                \`\`\`html
-                ${game.code}
-                \`\`\`
-
                 User's Request: "${prompt}"
+
+                The user wants to iterate on an existing game. Modify the game based on their request.
 
                 Return only the complete, updated HTML code for the game.
             `;
@@ -240,20 +230,9 @@ app.post("/api/iterate", async (req, res) => {
         .json({ error: "Failed to extract valid game code from AI response." });
     }
 
-    const newGame = {
-      id: Date.now().toString(),
-      name: newGameName,
-      code: cleanCode,
-    };
-
-    games.push(newGame);
-
-    await fsp.writeFile(GAMES_FILE, JSON.stringify(games, null, 2));
-
     res.json({
       code: cleanCode,
       newGameName: newGameName,
-      newGameId: newGame.id,
     });
   } catch (error) {
     console.error("Error during iteration:", error);

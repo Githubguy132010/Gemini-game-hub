@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameFrame = document.getElementById('game-frame');
         const newGameNameInput = document.getElementById('new-iterated-game-name');
         const publishButton = document.getElementById('publish-button');
-        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingIndicator = document.getElementById('loading-indicator');
         const publishContainer = document.getElementById('publish-container');
         const gameContainer = document.getElementById('game-container');
         let iteratedGameCode = '';
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if(loadingOverlay) loadingOverlay.classList.remove('hidden');
+            if(loadingIndicator) loadingIndicator.classList.remove('hidden');
             if(gameFrame) gameFrame.srcdoc = '';
             if(publishContainer) publishContainer.classList.add('hidden');
 
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(error);
                 alert(error.message);
             } finally {
-                if(loadingOverlay) loadingOverlay.classList.add('hidden');
+                if(loadingIndicator) loadingIndicator.classList.add('hidden');
             }
         });
 
