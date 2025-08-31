@@ -122,87 +122,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Handle iteration
-        iterateButton.addEventListener('click', async (e) => {
+        iterateButton.addEventListener('click', (e) => {
             e.preventDefault();
             const gameId = gameSelect.value;
             const prompt = iterationPrompt.value;
-            const newGameName = newGameNameInput.value;
-            const selectedGameName = gameSelect.options[gameSelect.selectedIndex].text;
 
-            if (!gameId || !prompt || !newGameName) {
-                alert('Please select a game, provide a name for the new game, and describe the changes.');
+            if (!gameId || !prompt) {
+                alert('Please select a game and describe the changes.');
                 return;
             }
-
-            if(loadingIndicator) loadingIndicator.classList.remove('hidden');
-            if(gameFrame) gameFrame.srcdoc = '';
-            if(publishContainer) publishContainer.classList.add('hidden');
-
-            try {
-                const iterateResponse = await fetch('/api/iterate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameId, prompt, newGameName }),
-                });
-
-                if (!iterateResponse.ok) {
-                    const errorData = await iterateResponse.json();
-                    throw new Error(errorData.error || 'Failed to iterate on the game.');
-                }
-                
-                const data = await iterateResponse.json();
-                iteratedGameCode = data.code;
-
-                if(gameFrame) gameFrame.srcdoc = iteratedGameCode;
-                if(gameContainer) gameContainer.classList.remove('hidden');
-                if(publishContainer) publishContainer.classList.remove('hidden');
-                if (newGameNameInput) {
-                    newGameNameInput.value = `${selectedGameName} v2`;
-                }
-                if(publishButton) publishButton.style.display = 'block';
-
-            } catch (error) {
-                console.error(error);
-                alert(error.message);
-            } finally {
-                if(loadingIndicator) loadingIndicator.classList.add('hidden');
-            }
-        });
-
-        // Handle publishing the new version
-        publishButton.addEventListener('click', async () => {
-            const name = newGameNameInput ? newGameNameInput.value : null;
-            if (!name) {
-                alert('Please enter a name for your new game.');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/games', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, code: iteratedGameCode }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to publish game.');
-                }
-
-                const data = await response.json();
-                if (gameFrame && data.id) {
-                    gameFrame.srcdoc = ''; // Clear srcdoc before setting src
-                    gameFrame.src = `play.html?id=${data.id}`;
-                    if(publishContainer) publishContainer.classList.add('hidden');
-                } else {
-                    window.location.href = `index.html`;
-                }
-            } catch (error) {
-                console.error(error);
-                alert(error.message);
-            }
+            
+            iterateGame(gameId, prompt);
         });
     }
 });
+
+async function iterateGame(gameId, prompt) {
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) loadingIndicator.classList.remove('hidden');
+
+    try {
+        const response = await fetch('/api/iterate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gameId, prompt }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to iterate game.');
+        }
+
+        const game = await response.json();
+        window.location.href = `/play.html?id=${game.id}`;
+
+    } catch (error) {
+        console.error('Error iterating game:', error);
+        alert(`An error occurred: ${error.message}`);
+    } finally {
+        if (loadingIndicator) loadingIndicator.classList.add('hidden');
+    }
+}
 
 function initIndexPage() {
     const gameList = document.getElementById('game-list');

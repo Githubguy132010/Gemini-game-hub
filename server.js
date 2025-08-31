@@ -193,23 +193,24 @@ app.delete("/api/games/:id", (req, res) => {
 });
 
 app.post("/api/iterate", async (req, res) => {
-  const { gameId, prompt, newGameName } = req.body;
+  const { gameId, prompt } = req.body;
 
-  if (!gameId || !prompt || !newGameName) {
+  if (!gameId || !prompt) {
     return res
       .status(400)
-      .json({ error: "Game ID, prompt, and new game name are required" });
+      .json({ error: "Game ID and prompt are required" });
   }
 
   try {
-
     const data = await fsp.readFile(GAMES_FILE);
-    const games = JSON.parse(data);
-    const game = games.find((g) => g.id === gameId);
+    let games = JSON.parse(data);
+    const gameIndex = games.findIndex((g) => g.id === gameId);
 
-    if (!game) {
+    if (gameIndex === -1) {
       return res.status(404).json({ error: "Game not found" });
     }
+
+    const game = games[gameIndex];
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
@@ -234,10 +235,22 @@ app.post("/api/iterate", async (req, res) => {
         .json({ error: "Failed to extract valid game code from AI response." });
     }
 
-    res.json({
+    const newVersion = (game.version || 1) + 1;
+    const newTitle = `${game.name.replace(/ V\d+$/, "")} V${newVersion}`;
+
+    const updatedGame = {
+      ...game,
       code: cleanCode,
-      newGameName: newGameName,
-    });
+      version: newVersion,
+      title: newTitle,
+      name: newTitle,
+    };
+
+    games[gameIndex] = updatedGame;
+
+    await fsp.writeFile(GAMES_FILE, JSON.stringify(games, null, 2));
+
+    res.json(updatedGame);
   } catch (error) {
     console.error("Error during iteration:", error);
     if (error.code === "ENOENT") {
