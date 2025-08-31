@@ -1,5 +1,6 @@
 require("dotenv").config();
 const fs = require("fs");
+const fsp = require("fs").promises;
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
@@ -192,31 +193,26 @@ app.delete("/api/games/:id", (req, res) => {
 });
 
 app.post("/api/iterate", async (req, res) => {
-  const { gameId, prompt } = req.body;
+  const { gameId, prompt, newGameName } = req.body;
 
-  if (!gameId || !prompt) {
-    return res.status(400).json({ error: "Game ID and prompt are required" });
+  if (!gameId || !prompt || !newGameName) {
+    return res
+      .status(400)
+      .json({ error: "Game ID, prompt, and new game name are required" });
   }
 
-  fs.readFile(GAMES_FILE, async (err, data) => {
-    if (err) {
-      console.error(err);
-      return res
-        .status(500)
-        .json({ error: "Failed to retrieve game to iterate on" });
+  try {
+    const data = await fsp.readFile(GAMES_FILE);
+    const games = JSON.parse(data);
+    const game = games.find((g) => g.id === gameId);
+
+    if (!game) {
+      return res.status(404).json({ error: "Game not found" });
     }
 
-    try {
-      const games = JSON.parse(data);
-      const game = games.find((g) => g.id === gameId);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
-      if (!game) {
-        return res.status(404).json({ error: "Game not found" });
-      }
-
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-
-      const iterationPrompt = `
+    const iterationPrompt = `
                 You are a game development expert. You will be given the HTML code for an existing game and a user's request for changes.
                 Your task is to modify the game according to the request and provide the complete, updated, single-file HTML code for the new version of the game.
                 Ensure the game remains self-contained with all necessary HTML, CSS, and JavaScript in one file.
@@ -232,30 +228,42 @@ app.post("/api/iterate", async (req, res) => {
                 Return only the complete, updated HTML code for the game.
             `;
 
-      const result = await model.generateContent(iterationPrompt);
-      const response = await result.response;
-      const newGameCode = response.candidates[0].content.parts[0].text;
+    const result = await model.generateContent(iterationPrompt);
+    const response = await result.response;
+    const newGameCode = response.candidates[0].content.parts[0].text;
 
-      const cleanCode = extractCleanCode(newGameCode);
+    const cleanCode = extractCleanCode(newGameCode);
 
-      if (!cleanCode) {
-        return res
-          .status(500)
-          .json({
-            error: "Failed to extract valid game code from AI response.",
-          });
-      }
-
-      res.json({ code: cleanCode });
-    } catch (error) {
-      console.error("Error during iteration:", error);
-      res
+    if (!cleanCode) {
+      return res
         .status(500)
-        .json({
-          error: "Failed to iterate on the game due to an internal error.",
-        });
+        .json({ error: "Failed to extract valid game code from AI response." });
     }
-  });
+
+    const newGame = {
+      id: Date.now().toString(),
+      name: newGameName,
+      code: cleanCode,
+    };
+
+    games.push(newGame);
+
+    await fsp.writeFile(GAMES_FILE, JSON.stringify(games, null, 2));
+
+    res.json({
+      code: cleanCode,
+      newGameName: newGameName,
+      newGameId: newGame.id,
+    });
+  } catch (error) {
+    console.error("Error during iteration:", error);
+    if (error.code === "ENOENT") {
+      return res.status(404).json({ error: "Game not found" });
+    }
+    res
+      .status(500)
+      .json({ error: "Failed to iterate on the game due to an internal error." });
+  }
 });
 
 app.listen(port, () => {

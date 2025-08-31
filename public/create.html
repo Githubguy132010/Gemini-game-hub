@@ -6,29 +6,36 @@
     <title>Create a New Game - Gemini Game Hub</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="play-page">
-    <a href="/index.html" class="back-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-    </a>
-    <h1>Create a New Game</h1>
-    <form id="game-form">
-        <textarea id="game-prompt" rows="5" placeholder="Describe the game you want to create..."></textarea>
-        <button type="submit">Generate Game</button>
-    </form>
-    <div id="loading-indicator" class="hidden"></div>
-    <div id="game-container">
-        <!-- The generated game will be displayed here -->
-    </div>
-    <div id="publish-container" style="display: none;">
-        <h3>Publish Your Game</h3>
-        <form id="publish-form">
-            <input type="text" id="game-name" placeholder="Enter a name for your game" required>
-            <button type="submit">Publish</button>
+<body class="page">
+    <header>
+        <a href="/index.html" class="back-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            &svg>
+        </a>
+        <h1>Create a New Game</h1>
+    </header>
+    <main>
+        <form id="create-game-form">
+            <div class="form-group">
+                <label for="new-game-name">NAME YOUR NEW GAME:</label>
+                <input type="text" id="new-game-name" placeholder="e.g., 'Space Invaders 2.0'">
+            </div>
+            <div class="form-group">
+                <label for="prompt">DESCRIBE YOUR GAME:</label>
+                <textarea id="prompt" rows="4" placeholder="e.g., 'A classic space shooter where you defend against waves of aliens'"></textarea>
+            </div>
+            <button type="submit">CREATE GAME</button>
         </form>
-    </div>
-    <script src="js/app.js"></script>
+        <div id="loading-indicator" class="hidden">
+            <div class="spinner"></div>
+            <p>Generating your game...</p>
+        </div>
+        <div id="game-container" class="hidden">
+            <!-- The generated game will be displayed here -->
+        </div>
+    </main>
+    <script src="/js/app.js"></script>
 </body>
 </html>

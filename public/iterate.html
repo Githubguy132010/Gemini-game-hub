@@ -25,11 +25,19 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="new-iterated-game-name">New Game Name:</label>
+                    <input type="text" id="new-iterated-game-name" placeholder="Enter a name for your new game" disabled>
+                </div>
+                <div class="form-group">
                     <label for="iteration-prompt">Describe the changes you want to make:</label>
                     <textarea id="iteration-prompt" rows="5" placeholder="e.g., 'Add a score counter', 'Change the background to a space theme'..." disabled></textarea>
                 </div>
                 <button id="iterate-button" type="submit" disabled>Iterate</button>
             </form>
+        </div>
+        <div id="loading-overlay" class="hidden">
+            <div id="loading-indicator"></div>
+            <p class="loading-text">Iterating on your game, please wait...</p>
         </div>
         <div id="game-container" class="hidden">
             <h2>Game Preview</h2>
